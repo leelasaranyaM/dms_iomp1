@@ -1,0 +1,26 @@
+/* my-dms-client/src/components/VolunteerForm.css */
+.volunteer-form-card {
+    max-width: 750px; 
+    margin-left: auto;
+    margin-right: auto;
+    box-shadow: 0 8px 20px rgba(0, 128, 0, 0.2) !important; 
+    border: 1px solid #28a745 !important; 
+}
+
+.volunteer-form-card .card-header {
+    font-weight: 700;
+    padding: 1rem 1.25rem;
+    border-bottom: 2px solid #1e7e34 !important;
+}
+
+.volunteer-intro {
+    font-size: 1.05rem;
+    color: #386142 !important; 
+}
+
+.submit-btn {
+    font-size: 1.15rem !important;
+    font-weight: bold !important;
+    letter-spacing: 0.5px;
+    padding: 10px !important;
+}

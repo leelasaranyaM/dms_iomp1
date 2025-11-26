@@ -1,0 +1,13 @@
+/* my-dms-client/src/components/Navbar.css */
+/* Minimal styling, relying heavily on Bootstrap's bg-primary/bg-danger classes */
+
+/* Adjust font weight for admin tag */
+.portal-tag {
+    font-weight: 400;
+    font-size: 0.9em;
+}
+
+/* Ensure buttons within Navbar follow Bootstrap styles */
+.btn-logout-nav {
+    white-space: nowrap;
+}

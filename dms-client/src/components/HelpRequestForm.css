@@ -1,0 +1,36 @@
+/* my-dms-client/src/components/HelpRequestForm.css */
+
+/* --- 1. Form Container and Alignment --- */
+.help-form-card {
+    max-width: 650px; 
+    margin-left: auto;
+    margin-right: auto;
+    box-shadow: 0 8px 20px rgba(255, 0, 0, 0.2) !important; 
+    border: 1px solid #dc3545 !important; 
+}
+
+/* --- 2. Card Header Overrides --- */
+.help-form-card .card-header {
+    font-weight: 700;
+    padding: 1rem 1.25rem; 
+    border-bottom: 2px solid #a71d28 !important;
+}
+
+/* --- 3. Location Fieldset Styling --- */
+.location-fieldset {
+    border-width: 2px !important; 
+    border-style: solid !important;
+}
+
+/* --- 4. Submission Button Styling --- */
+.submit-btn {
+    font-size: 1.15rem !important;
+    font-weight: bold !important;
+    letter-spacing: 0.5px;
+    padding: 10px !important;
+}
+
+/* --- 5. Custom Label Styling --- */
+.form-group .text-danger {
+    font-weight: bold;
+}

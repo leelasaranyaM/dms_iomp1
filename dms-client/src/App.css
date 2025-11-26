@@ -1,0 +1,15 @@
+/* my-dms-client/src/App.css */
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: #f8f9fa; 
+}
+
+/* Ensure the Leaflet map container has a proper display size */
+.leaflet-container {
+    height: 100%;
+    width: 100%;
+}
+
+.content-wrapper {
+    min-height: 80vh;
+}

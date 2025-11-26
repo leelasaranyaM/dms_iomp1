@@ -1,0 +1,10 @@
+/* src/components/StatusCard.css */
+.card-value-display {
+    font-size: 3rem; /* Make the number large and prominent */
+    font-weight: 700;
+}
+
+.card-description-text {
+    font-size: 0.9rem;
+    opacity: 0.8;
+}

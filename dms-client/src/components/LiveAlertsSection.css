@@ -1,0 +1,10 @@
+/* src/components/LiveAlertsSection.css */
+.live-alerts-container {
+    padding: 20px;
+    background-color: #f7f7f7;
+    border-radius: 8px;
+}
+.alerts-grid {
+    /* Relying on Bootstrap Row/Col (g-4) for spacing */
+    margin-top: 20px;
+}

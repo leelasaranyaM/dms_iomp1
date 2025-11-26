@@ -1,0 +1,7 @@
+/* src/components/RoutePlanner.css */
+.route-planner-container {
+    max-width: 800px;
+    margin-left: auto;
+    margin-right: auto;
+    padding: 20px;
+}

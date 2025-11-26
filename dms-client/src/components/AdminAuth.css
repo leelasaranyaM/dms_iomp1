@@ -1,0 +1,12 @@
+/* src/components/AdminAuth.css */
+.admin-auth-container {
+    max-width: 400px;
+    margin-left: auto;
+    margin-right: auto;
+}
+.admin-auth-container .card-body {
+    padding: 30px;
+}
+.admin-auth-container .form-group label {
+    font-weight: 600;
+}
