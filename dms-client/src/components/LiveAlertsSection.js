@@ -1,72 +1,87 @@
 // src/components/LiveAlertsSection.js
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import axios from 'axios';
-import { Spinner, Alert, Row, Col } from 'react-bootstrap';
-import AlertCard from './AlertCard.js';
-import './LiveAlertsSection.css';
+import { Card, Spinner, Alert, Row, Col } from 'react-bootstrap';
+import AlertCard from './AlertCard';
 
-const API_URL = 'http://localhost:5000/api/help/alerts';
+const API_BASE = 'http://localhost:5000';
 
-function LiveAlertsSection({ isAdmin, adminKey, onAlertsFetched }) { 
-    const [alerts, setAlerts] = useState([]);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(null);
+function LiveAlertsSection({ isAdmin, adminToken, onAlertsFetched }) {
+  const [alerts, setAlerts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-    const fetchAlerts = async () => {
-        try {
-            const response = await axios.get(API_URL);
-            setAlerts(response.data);
-            setLoading(false);
-            setError(null);
-            
-            if (onAlertsFetched) {
-                onAlertsFetched(response.data.filter(a => a.status !== 'Completed')); 
-            }
-            
-        } catch (err) {
-            console.error("Alerts Fetch Error:", err);
-            setError("Could not load real-time alerts from the server.");
-            setLoading(false);
-        }
-    };
+  const fetchAlerts = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const res = await axios.get(`${API_BASE}/api/help/alerts`);
+      const data = res.data || [];
+      setAlerts(data);
 
-    useEffect(() => {
-        fetchAlerts(); 
+      if (onAlertsFetched) {
+        onAlertsFetched(data);
+      }
+    } catch (err) {
+      console.error('Error fetching live alerts:', err.response?.data || err.message);
+      setError('Unable to load current help requests from the server.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
-        const intervalId = setInterval(fetchAlerts, 15000); 
+  useEffect(() => {
+    fetchAlerts();
+  }, []);
 
-        return () => clearInterval(intervalId);
-    }, [onAlertsFetched]); 
+  return (
+    <Card className="shadow-sm">
+      <Card.Header
+        as="h5"
+        className="bg-danger text-white d-flex justify-content-between"
+      >
+        <span>⚠️ Live Help Requests & Alerts</span>
+        <span className="small">
+          Mode: {isAdmin ? 'Admin (can update status)' : 'Public (read-only)'}
+        </span>
+      </Card.Header>
+      <Card.Body>
+        {loading && (
+          <div className="text-center my-3">
+            <Spinner animation="border" role="status" />
+            <p className="text-muted mt-2 mb-0">Loading live alerts...</p>
+          </div>
+        )}
 
-    return (
-        <div className="live-alerts-container">
-            <h3 className="text-center text-danger mb-4">Active Help Requests ({alerts.length} Incidents)</h3>
-            
-            {loading && <div className="text-center"><Spinner animation="border" variant="danger" /></div>}
-            {error && <Alert variant="danger" className="text-center">⚠️ {error}</Alert>}
-            
-            {!loading && alerts.length === 0 && !error && (
-                <Alert variant="success" className="text-center">
-                    ✅ No critical help requests are currently pending. All clear!
-                </Alert>
-            )}
+        {!loading && error && (
+          <Alert variant="warning" className="text-center">
+            {error}
+          </Alert>
+        )}
 
-            <div className="alerts-grid">
-                <Row xs={1} md={2} lg={3} className="g-4">
-                    {alerts.map((request) => (
-                        <Col key={request._id}>
-                            <AlertCard 
-                                request={request} 
-                                isAdmin={isAdmin} 
-                                adminKey={adminKey} 
-                                onUpdate={fetchAlerts} 
-                            />
-                        </Col>
-                    ))}
-                </Row>
-            </div>
-        </div>
-    );
+        {!loading && !error && alerts.length === 0 && (
+          <p className="text-muted mb-0 text-center">
+            No active help requests reported in the last 24 hours.
+          </p>
+        )}
+
+        {!loading && !error && alerts.length > 0 && (
+          <Row className="g-3">
+            {alerts.map(request => (
+              <Col md={6} lg={4} key={request._id}>
+                <AlertCard
+                  request={request}
+                  isAdmin={isAdmin}
+                  adminKey={adminToken}
+                  onUpdate={fetchAlerts}
+                />
+              </Col>
+            ))}
+          </Row>
+        )}
+      </Card.Body>
+    </Card>
+  );
 }
 
-export default LiveAlertsSection; // ✅ CHECK: Default Export
+export default LiveAlertsSection;

@@ -1,4 +1,5 @@
-// my-dms-client/src/components/MapComponent.js
+// src/components/MapComponent.js (FINAL CODE - India Centric Map)
+
 import React from 'react';
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import L from 'leaflet'; 
@@ -7,10 +8,18 @@ import iconRetina from 'leaflet/dist/images/marker-icon-2x.png';
 import iconShadow from 'leaflet/dist/images/marker-shadow.png';
 
 // Fix for default marker icon (essential for react-leaflet)
-let DefaultIcon = L.icon({ iconUrl: icon, iconRetinaUrl: iconRetina, shadowUrl: iconShadow, iconSize: [25, 41], iconAnchor: [12, 41], popupAnchor: [1, -34], shadowSize: [41, 41] });
+let DefaultIcon = L.icon({
+    iconUrl: icon,
+    iconRetinaUrl: iconRetina,
+    shadowUrl: iconShadow,
+    iconSize: [25, 41],
+    iconAnchor: [12, 41],
+    popupAnchor: [1, -34],
+    shadowSize: [41, 41]
+});
 L.Marker.prototype.options.icon = DefaultIcon;
 
-// --- Multi-Hazard Icon Logic ---
+// --- Multi-Hazard Icon Logic (Unchanged) ---
 const getCustomIcon = (event) => {
     const type = (event.properties.type || 'earthquake').toLowerCase();
     const magnitude = event.properties.mag || 0; 
@@ -19,22 +28,22 @@ const getCustomIcon = (event) => {
     let symbol = '⚠️';
 
     if (type.includes('flood') || type.includes('water')) {
-        color = '#2196f3'; 
+        color = '#2196f3'; // Blue
         symbol = '🌊';
         size = 20;
     } else if (type.includes('fire') || type.includes('wildfire') || type.includes('industrial fire')) {
-        color = '#dc3545'; 
+        color = '#dc3545'; // Red
         symbol = '🔥';
         size = 25;
     } else if (type.includes('cyclone') || type.includes('storm')) {
-        color = '#9c27b0'; 
+        color = '#9c27b0'; // Purple
         symbol = '🌀';
         size = 28;
     } else if (type.includes('earthquake')) {
         symbol = '🌍';
         if (magnitude >= 6.0) { color = '#dc3545'; size = 25; }
         else if (magnitude >= 4.0) { color = '#ffc107'; size = 20; }
-        else { color = '#28a745'; size = 15; } // Green for minor
+        else { color = '#28a745'; size = 15; }
     } else if (type.includes('landslide')) {
         color = '#6c757d'; // Grey
         symbol = '⛰️';
@@ -54,8 +63,9 @@ const getCustomIcon = (event) => {
 
 
 function MapComponent({ events }) {
-  // Center map on India (Delhi coordinates)
-  const defaultCenter = [28.6139, 77.2090]; 
+  // ⬅️ CRITICAL CHANGE: Set map center to approximate center of India
+  const defaultCenter = [22.0, 78.0]; 
+  // ⬅️ CRITICAL CHANGE: Set zoom level to focus on the country
   const defaultZoom = 5; 
 
   return (
@@ -74,6 +84,7 @@ function MapComponent({ events }) {
         const coords = event.geometry?.coordinates;
         if (!coords || coords.length < 2) return null;
         
+        // Data usually comes as [Lon, Lat] from GeoJSON
         const position = [coords[1], coords[0]]; 
         const type = event.properties.type || 'Earthquake';
         const place = event.properties.place || 'Unknown Location';

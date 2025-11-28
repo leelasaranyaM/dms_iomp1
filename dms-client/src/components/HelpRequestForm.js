@@ -1,141 +1,305 @@
 // src/components/HelpRequestForm.js
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { Form, Button, Card, Alert, Spinner } from 'react-bootstrap';
-import './HelpRequestForm.css'; 
+import { Card, Form, Button, Alert, Spinner, Row, Col } from 'react-bootstrap';
+import './HelpRequestForm.css';
 
 const API_URL = 'http://localhost:5000/api/help/request';
 
-const DISASTER_TYPES = [
-  'Medical Emergency', 'Fire', 'Structural Collapse / Trapped', 
-  'Flood / Water Rescue', 'Missing Person', 'Other / Unsure',
-];
+function HelpRequestForm({ onSuccessfulSubmit }) {
+  const [formData, setFormData] = useState({
+    reporterContact: '',
+    disasterType: '',
+    description: '',
+    severity: 'Moderate',
+    manualAddress: '',
+    lat: '',
+    lon: '',
+  });
 
-function HelpRequestForm({ onSuccessfulSubmit }) { 
-  const [formData, setFormData] = useState({ reporterContact: '', disasterType: DISASTER_TYPES[0], description: '', manualAddress: '' });
-  const [location, setLocation] = useState(null); 
-  const [locationStatus, setLocationStatus] = useState('pending');
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [submissionStatus, setSubmissionStatus] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  const [errorMessage, setErrorMessage] = useState(''); 
+  const [errorMessage, setErrorMessage] = useState('');
 
-  // --- Geolocation Effect ---
-  useEffect(() => {
-    if (navigator.geolocation) {
-      let timeoutId;
-      timeoutId = setTimeout(() => { if (locationStatus === 'pending') { setLocationStatus('failed'); } }, 5000); 
-      
-      navigator.geolocation.getCurrentPosition(
-        (pos) => { clearTimeout(timeoutId); setLocation({ lat: pos.coords.latitude, lon: pos.coords.longitude }); setLocationStatus('success'); },
-        (err) => { clearTimeout(timeoutId); setLocationStatus('failed'); },
-        { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
-      );
-      return () => clearTimeout(timeoutId);
-    } else { setLocationStatus('failed'); }
-  }, [locationStatus]); 
+  // GPS-related state
+  const [isLocating, setIsLocating] = useState(false);
+  const [locationError, setLocationError] = useState('');
 
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData(prevData => ({ ...prevData, [name]: value }));
+  // Function to detect GPS location
+  const detectLocation = () => {
+    if (!('geolocation' in navigator)) {
+      setLocationError('Browser does not support GPS. Please type address manually.');
+      return;
+    }
+
+    setIsLocating(true);
+    setLocationError('');
+
+    navigator.geolocation.getCurrentPosition(
+      position => {
+        const { latitude, longitude } = position.coords;
+
+        setFormData(prev => ({
+          ...prev,
+          lat: prev.lat || latitude.toFixed(6),
+          lon: prev.lon || longitude.toFixed(6),
+        }));
+
+        setIsLocating(false);
+      },
+      err => {
+        console.error('HelpRequestForm GPS error:', err);
+        setLocationError('Could not auto-detect GPS. Please type address or try again.');
+        setIsLocating(false);
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 10000,
+      }
+    );
   };
 
-  const handleSubmit = async (e) => {
+  // Try auto-detect GPS on mount
+  useEffect(() => {
+    detectLocation();
+  }, []);
+
+  const handleChange = e => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: value,
+    }));
+  };
+
+  const handleSubmit = async e => {
     e.preventDefault();
-    setIsLoading(true);
+    setIsSubmitting(true);
     setSubmissionStatus('');
     setErrorMessage('');
 
-    if (locationStatus !== 'success' && !formData.manualAddress.trim()) {
-        setErrorMessage('We need either your GPS location or a manual address to send help.');
-        setIsLoading(false);
-        return;
+    // Backend requires: manualAddress OR (lat & lon)
+    if (!formData.manualAddress && (!formData.lat || !formData.lon)) {
+      setIsSubmitting(false);
+      setSubmissionStatus('error');
+      setErrorMessage(
+        'Please provide either a GPS location (allow location) or a manual address.'
+      );
+      return;
     }
 
     try {
       const payload = {
-        ...formData,
-        manualAddress: (locationStatus !== 'success' && formData.manualAddress) ? formData.manualAddress : undefined,
-        lat: location ? location.lat : undefined,
-        lon: location ? location.lon : undefined,
+        reporterContact: formData.reporterContact,
+        disasterType: formData.disasterType,
+        description: formData.description,
+        severity: formData.severity,
+        manualAddress: formData.manualAddress || undefined,
+        lat: formData.lat ? parseFloat(formData.lat) : undefined,
+        lon: formData.lon ? parseFloat(formData.lon) : undefined,
       };
 
       await axios.post(API_URL, payload);
-      
+
       setSubmissionStatus('success');
-      setFormData({ reporterContact: '', disasterType: DISASTER_TYPES[0], description: '', manualAddress: '' });
+      setFormData({
+        reporterContact: '',
+        disasterType: '',
+        description: '',
+        severity: 'Moderate',
+        manualAddress: '',
+        lat: '',
+        lon: '',
+      });
 
-      if (onSuccessfulSubmit) { onSuccessfulSubmit(); }
+      // Try to detect GPS again for next submission
+      detectLocation();
 
+      if (onSuccessfulSubmit) {
+        onSuccessfulSubmit();
+      }
     } catch (error) {
+      console.error('Help request submission error:', error);
       setSubmissionStatus('error');
-      const msg = error.response?.data?.message || 'Server error. Please try calling emergency services.';
+      const msg =
+        error.response?.data?.message || 'Server error during help request submission.';
       setErrorMessage(msg);
-      
     } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const isLocationRequired = locationStatus !== 'success';
-
-  const getLocationStatusBadge = () => {
-    switch (locationStatus) {
-        case 'pending': return <Alert variant="warning" className="p-2 mb-2">🟡 Attempting to get precise GPS location...</Alert>;
-        case 'success': return <Alert variant="success" className="p-2 mb-2">🟢 **GPS Location Confirmed**</Alert>;
-        case 'failed': return <Alert variant="danger" className="p-2 mb-2">🔴 GPS failed or denied. **Please enter the address manually below.**</Alert>;
-        default: return null;
+      setIsSubmitting(false);
     }
   };
 
   return (
-    <Card className="shadow-lg help-form-card">
-      <Card.Header as="h3" className="text-center text-white bg-danger py-3">Need Immediate Help? 🆘</Card.Header>
-      <Card.Body className="p-4"> 
-        <p className="form-intro text-muted text-center mb-4">
-          Use this form to quickly report a critical situation. Provide accurate details to dispatch help faster.
+    <Card className="shadow-sm help-request-card border-0">
+      <Card.Header as="h3" className="bg-danger text-white text-center py-3">
+        Request Immediate Help 🚨
+      </Card.Header>
+      <Card.Body className="p-4">
+        <p className="text-muted text-center mb-4">
+          Use this form to report an emergency in your area. Your report will be sent to
+          admins and local volunteers.
         </p>
 
-        {submissionStatus === 'success' && (<Alert variant="success">✅ Request Sent! Stay safe. Responders are being notified.</Alert>)}
-        {submissionStatus === 'error' && (<Alert variant="danger">❌ Request Failed: {errorMessage}</Alert>)}
+        {submissionStatus === 'success' && (
+          <Alert variant="success">
+            ✅ Help request submitted! Responders are being notified.
+          </Alert>
+        )}
+
+        {submissionStatus === 'error' && (
+          <Alert variant="danger">
+            ❌ Could not submit request: {errorMessage}
+          </Alert>
+        )}
 
         <Form onSubmit={handleSubmit}>
-          
-          <Form.Group className="mb-3" controlId="contact">
-            <Form.Label className="fw-bold">Your Contact Number *</Form.Label>
-            <Form.Control type="tel" name="reporterContact" value={formData.reporterContact} onChange={handleChange} required />
+          <Row className="mb-3 g-3">
+            <Col md={6}>
+              <Form.Group controlId="helpReporterContact">
+                <Form.Label className="fw-bold">Your Contact (Phone / WhatsApp) *</Form.Label>
+                <Form.Control
+                  type="text"
+                  name="reporterContact"
+                  value={formData.reporterContact}
+                  onChange={handleChange}
+                  required
+                  placeholder="e.g., +91-9876543210"
+                />
+              </Form.Group>
+            </Col>
+
+            <Col md={6}>
+              <Form.Group controlId="helpDisasterType">
+                <Form.Label className="fw-bold">Disaster Type *</Form.Label>
+                <Form.Select
+                  name="disasterType"
+                  value={formData.disasterType}
+                  onChange={handleChange}
+                  required
+                >
+                  <option value="">Select type...</option>
+                  <option>Flood</option>
+                  <option>Fire</option>
+                  <option>Building Collapse</option>
+                  <option>Medical Emergency</option>
+                  <option>Earthquake Damage</option>
+                  <option>Missing Person</option>
+                  <option>Other</option>
+                </Form.Select>
+              </Form.Group>
+            </Col>
+          </Row>
+
+          <Form.Group className="mb-3" controlId="helpDescription">
+            <Form.Label className="fw-bold">Describe the Situation *</Form.Label>
+            <Form.Control
+              as="textarea"
+              name="description"
+              rows={3}
+              value={formData.description}
+              onChange={handleChange}
+              required
+              placeholder="Describe what is happening, how many people are affected, injuries, and any immediate dangers."
+            />
           </Form.Group>
 
-          <Form.Group className="mb-3" controlId="disasterType">
-            <Form.Label className="fw-bold">Type of Emergency *</Form.Label>
-            <Form.Select name="disasterType" value={formData.disasterType} onChange={handleChange} required>
-              {DISASTER_TYPES.map(type => (<option key={type} value={type}>{type}</option>))}
-            </Form.Select>
-          </Form.Group>
-          
-          <Form.Group className="mb-4" controlId="description">
-            <Form.Label className="fw-bold">Details of the Situation *</Form.Label>
-            <Form.Control as="textarea" name="description" value={formData.description} onChange={handleChange} required rows={3} placeholder="e.g., 'Three people trapped on the second floor, visible smoke.'"/>
-          </Form.Group>
+          <Row className="mb-3 g-3">
+            <Col md={6}>
+              <Form.Group controlId="helpSeverity">
+                <Form.Label className="fw-bold">Severity</Form.Label>
+                <Form.Select
+                  name="severity"
+                  value={formData.severity}
+                  onChange={handleChange}
+                >
+                  <option>Minor</option>
+                  <option>Moderate</option>
+                  <option>Severe</option>
+                  <option>Critical</option>
+                </Form.Select>
+              </Form.Group>
+            </Col>
+          </Row>
 
-          <Card className="location-fieldset mb-4 border-warning">
-            <Card.Header as="legend" className="bg-warning text-dark p-2 fw-bold fs-6">
-                📍 Location Details *
-            </Card.Header>
-            <Card.Body className="p-3">
-                {getLocationStatusBadge()}
-                
-                <Form.Group controlId="manualAddress">
-                    <Form.Label className={isLocationRequired ? 'text-danger fw-bold' : 'fw-bold'}>
-                        Manual Address
-                    </Form.Label>
-                    <Form.Control type="text" name="manualAddress" value={formData.manualAddress} onChange={handleChange} 
-                                placeholder="Street, City, Landmark (Required if GPS fails)" required={isLocationRequired} />
-                </Form.Group>
-            </Card.Body>
-          </Card>
+          <Row className="mb-3 g-3">
+            <Col md={7}>
+              <Form.Group controlId="helpManualAddress">
+                <Form.Label className="fw-bold">
+                  Manual Address / Landmark (Optional if GPS works)
+                </Form.Label>
+                <Form.Control
+                  type="text"
+                  name="manualAddress"
+                  value={formData.manualAddress}
+                  onChange={handleChange}
+                  placeholder="e.g., Near XYZ School, Kukatpally, Hyderabad"
+                />
+                <Form.Text className="text-muted">
+                  Give clear landmarks if GPS is not accurate.
+                </Form.Text>
+              </Form.Group>
+            </Col>
 
-          <Button variant="danger" type="submit" disabled={isLoading} className="w-100 submit-btn mt-3">
-            {isLoading ? (<><Spinner animation="border" size="sm" className="me-2" /> Sending Request...</>) : 'Send Help Request'}
+            <Col md={5}>
+              <Form.Group controlId="helpGps">
+                <Form.Label className="fw-bold">GPS Location</Form.Label>
+                <Row className="g-2">
+                  <Col xs={6}>
+                    <Form.Control
+                      type="text"
+                      name="lat"
+                      value={formData.lat}
+                      onChange={handleChange}
+                      placeholder="Lat"
+                    />
+                  </Col>
+                  <Col xs={6}>
+                    <Form.Control
+                      type="text"
+                      name="lon"
+                      value={formData.lon}
+                      onChange={handleChange}
+                      placeholder="Lon"
+                    />
+                  </Col>
+                </Row>
+                <Form.Text className="text-muted d-block mt-1">
+                  {isLocating && 'Detecting your GPS location...'}
+                  {!isLocating && !locationError && formData.lat && formData.lon && (
+                    <>GPS detected. You can adjust if needed.</>
+                  )}
+                  {locationError && (
+                    <span className="text-danger ms-1">{locationError}</span>
+                  )}
+                </Form.Text>
+                <Button
+                  variant="outline-secondary"
+                  size="sm"
+                  className="mt-2"
+                  type="button"
+                  onClick={detectLocation}
+                  disabled={isLocating}
+                >
+                  {isLocating ? 'Locating...' : 'Retry GPS'}
+                </Button>
+              </Form.Group>
+            </Col>
+          </Row>
+
+          <Button
+            variant="danger"
+            type="submit"
+            disabled={isSubmitting}
+            className="w-100 mt-3"
+          >
+            {isSubmitting ? (
+              <>
+                <Spinner animation="border" size="sm" className="me-2" />
+                Submitting Request...
+              </>
+            ) : (
+              'Submit Help Request'
+            )}
           </Button>
         </Form>
       </Card.Body>
@@ -143,4 +307,4 @@ function HelpRequestForm({ onSuccessfulSubmit }) {
   );
 }
 
-export default HelpRequestForm; // ✅ CHECK: Default Export
+export default HelpRequestForm;

@@ -1,28 +1,48 @@
 /* src/components/AlertCard.css */
+
 .alert-card {
-    border-radius: 8px;
-    height: 100%;
+  border-radius: 0.75rem;
+  background-color: #ffffff;
 }
 
-/* Status Color Coding for Border */
-.alert-card.pending { border-left: 5px solid #ff9800; } /* Orange */
-.alert-card.dispatched { border-left: 5px solid #2196f3; } /* Blue */
-.alert-card.completed { border-left: 5px solid #4caf50; opacity: 0.8; } 
+.alert-header .alert-icon {
+  width: 32px;
+  text-align: center;
+}
 
-/* Status Badge Styling */
+.alert-description {
+  font-size: 0.95rem;
+}
+
+.alert-meta p {
+  font-size: 0.85rem;
+}
+
+/* Status badges */
+
 .alert-status-badge {
-    padding: 4px 10px;
-    border-radius: 15px;
-    font-size: 0.75em;
-    font-weight: bold;
-    color: white;
-    text-transform: uppercase;
+  padding: 0.2rem 0.6rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
 }
 
-.status-pending { background-color: #ff9800; }
-.status-dispatched { background-color: #2196f3; }
-.status-completed { background-color: #4caf50; }
+.status-pending {
+  background-color: #fff6d6;
+  color: #8a6d08;
+}
 
-.alert-meta p { 
-    font-size: 0.85rem;
+.status-dispatched {
+  background-color: #d9ecff;
+  color: #0b5ed7;
+}
+
+.status-completed {
+  background-color: #d1f7e2;
+  color: #0f5132;
+}
+
+.status-default {
+  background-color: #e2e3e5;
+  color: #41464b;
 }
